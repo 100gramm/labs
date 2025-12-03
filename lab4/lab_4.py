@@ -15,75 +15,83 @@ ITEMS = {
     "c": ("crossbow", 2, 20),
 }
 
-TOTAL_ALL = sum(item[2] for item in ITEMS.values())
+
+def inventory_score(items, base):
+    score = sum(ITEMS[i][2] for i in items)
+    penalty = sum(ITEMS[i][2] for i in ITEMS if i not in items)
+    return base + score - penalty
 
 
-def inventory_score(selected, base_score):
-    selected_set = set(selected)
-    missing_set = set(ITEMS.keys()) - selected_set
-    positive = sum(ITEMS[i][2] for i in selected_set)
-    negative = sum(ITEMS[i][2] for i in missing_set)
-    return base_score + positive - negative
+def inventory_size(items):
+    return sum(ITEMS[i][1] for i in items)
 
 
-def inventory_size(selected):
-    return sum(ITEMS[i][1] for i in selected)
-
-
-def all_positive_combinations(capacity, base_score):
+def all_positive_combos(capacity, base):
     valid = []
     keys = list(ITEMS.keys())
     for r in range(1, len(keys) + 1):
         for combo in combinations(keys, r):
             if inventory_size(combo) <= capacity:
-                score = inventory_score(combo, base_score)
+                score = inventory_score(combo, base)
                 if score > 0:
                     valid.append((combo, score))
     return valid
 
 
-def best_combination(capacity, base_score):
-    all_valid = all_positive_combinations(capacity, base_score)
-    if not all_valid:
-        return None
-    return max(all_valid, key=lambda x: x[1])
+def best_combo(capacity, base):
+    combos = all_positive_combos(capacity, base)
+    return max(combos, key=lambda x: x[1], default=None)
 
 
-def render_inventory(items, rows, cols):
-    flat_items = []
+def render_inventory(items, rows=3, cols=3):
+    grid = [[" "] * cols for _ in range(rows)]
     for item in items:
-        flat_items.extend([item] * ITEMS[item][1])
-    grid = []
-    for r in range(rows):
-        row_items = flat_items[r*cols:(r+1)*cols]
-        row_str = ",".join(f"[{i}]" for i in row_items)
-        grid.append(row_str)
-    return grid
+        size = ITEMS[item][1]
+        placed = False
+        for r in range(rows):
+            for c in range(cols):
+                if c + size <= cols and all(grid[r][c + k] == " " for k in range(size)):
+                    for k in range(size):
+                        grid[r][c + k] = item
+                    placed = True
+                    break
+                if size == 2 and r + 1 < rows and grid[r][c] == " " and grid[r + 1][c] == " ":
+                    grid[r][c] = item
+                    grid[r + 1][c] = item
+                    placed = True
+                    break
+            if placed:
+                break
+        if not placed:
+            return None
+    return [",".join(f"[{x}]" for x in row) for row in grid]
 
 
 if __name__ == "__main__":
-    BASE_SCORE = 10
-    CAPACITY_9 = 9
-    CAPACITY_7 = 7
-
-    best_9 = best_combination(CAPACITY_9, BASE_SCORE)
+    base_score = 10
+    print("=== Вариант 10 ===")
+    print("\n--- 9 ячеек (3x3) ---")
+    pos_9 = all_positive_combos(9, base_score)
+    print(f"Всего положительных комбинаций: {len(pos_9)}")
+    best_9 = best_combo(9, base_score)
     if best_9:
         items, score = best_9
-        print("Лучший набор для 9 ячеек:")
+        print("Лучший набор:", items)
         print("Очки:", score)
-        print("Предметы:", items)
-        grid = render_inventory(list(items), 3, 3)
-        for row in grid:
-            print(row)
+        grid = render_inventory(items)
+        if grid:
+            for row in grid:
+                print(row)
+        else:
+            print("Набор не помещается в инвентарь 3x3.")
 
-    best_7 = best_combination(CAPACITY_7, BASE_SCORE)
+    print("\n--- 7 ячеек (3x3 с 2 пустыми) ---")
+    pos_7 = all_positive_combos(7, base_score)
+    print(f"Всего положительных комбинаций: {len(pos_7)}")
+    best_7 = best_combo(7, base_score)
     if best_7:
         items, score = best_7
-        print("\nЛучший набор для 7 ячеек:")
+        print("Лучший набор:", items)
         print("Очки:", score)
-        print("Предметы:", items)
-        grid = render_inventory(list(items), 2, 4)
-        for row in grid:
-            print(row)
     else:
-        print("\nДля рюкзака из 7 ячеек все варианты дают отрицательный итог.")
+        print("Для рюкзака из 7 ячеек все варианты дают отрицательный итог.")
