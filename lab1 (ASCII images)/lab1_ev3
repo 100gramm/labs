@@ -1,0 +1,35 @@
+from ev3dev2.motor import LargeMotor, OUTPUT_A
+import time
+
+motorA = LargeMotor(OUTPUT_A)
+power_values = [10, 15, 20, 25, 30, 35, 40, 45, 50]
+run_time = 3
+
+try:
+    for power in power_values:
+        filename = "data" + str(power) + ".txt"
+        file = open(filename, "w")
+        file.write("time position speed\n")
+
+        timeStart = time.time()
+        startPos = motorA.position
+        motorA.run_direct(duty_cycle_sp=power)
+
+        while True:
+            timeNow = time.time() - timeStart
+            pos = motorA.position - startPos
+            speed = motorA.speed
+
+            file.write(str(timeNow) + " " + str(pos) + " " + str(speed) + "\n")
+
+            if timeNow >= run_time:
+                motorA.run_direct(duty_cycle_sp=0)
+                break
+        file.close()
+        time.sleep(5)
+
+except Exception as e:
+    print(e)
+
+finally:
+    motorA.stop(stop_action='brake')
